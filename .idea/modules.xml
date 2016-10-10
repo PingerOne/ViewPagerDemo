@@ -5,6 +5,7 @@
       <module fileurl="file://$PROJECT_DIR$/Demo1/Demo1.iml" filepath="$PROJECT_DIR$/Demo1/Demo1.iml" />
       <module fileurl="file://$PROJECT_DIR$/Demo2/Demo2.iml" filepath="$PROJECT_DIR$/Demo2/Demo2.iml" />
       <module fileurl="file://$PROJECT_DIR$/Demo3/Demo3.iml" filepath="$PROJECT_DIR$/Demo3/Demo3.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Demo4/Demo4.iml" filepath="$PROJECT_DIR$/Demo4/Demo4.iml" />
       <module fileurl="file://$PROJECT_DIR$/ViewPagerDemo.iml" filepath="$PROJECT_DIR$/ViewPagerDemo.iml" />
     </modules>
   </component>

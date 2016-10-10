@@ -507,6 +507,132 @@
 
 ##### 经过以上的分析和编码之后，引导页这一块大家自己做出来应该基本没什么问题了，市面上还有一些引导页是动画的效果，包括ViewPager滑动的动画，获取页面上的素材随ViewPager移动的动画等等，这些其实都没什么难的，仔细分析一下就知道怎么做的了。
 
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<br/><br/>
+
+# ViewPager详解（三）Fragment的填充和懒加载实现
+
+### 效果图
+
+![效果图](http://upload-images.jianshu.io/upload_images/2786991-a5d78a95aaf32aa0.gif?imageMogr2/auto-orient/strip)
+
+
+### 一、ViewPager基础学习请上传送门
+[ViewPager详解（一）简单介绍和使用](http://www.jianshu.com/p/3f9cc4beb0ae)
+[ViewPager详解（二）广告轮播图](http://www.jianshu.com/p/48f63c537ae5)
+[ViewPager详解（三）引导页](http://www.jianshu.com/p/a5d47d827180)
+
+
+### 二、使用Fragment来填充ViewPager
+> 实际开发当中，TabLayout+ViewPager+Fragmenet是使用非常多的控件组合。这里主要介绍ViewPager和Fragment的联合使用，TabLayout使用非常简单，这里也简单介绍一下。
+
+#### 2.1 TabLayout组件的简单介绍
+
+* TabLayout是Material Design组件开发中的一种，使用时需要先导入design库的依赖。
+* TabLayout做出的效果是一排可以滑动的Tab，相当于一排指示器。
+
+
+* 在布局中申明控件
+
+	    <android.support.design.widget.TabLayout
+	        android:id="@+id/tab_layout"
+	        android:layout_width="match_parent"
+	        android:layout_height="wrap_content"
+	        app:tabBackground="@color/colorPrimary"
+	        app:tabIndicatorColor="@color/colorAccent"
+	        app:tabMode="scrollable"
+	        app:tabTextColor="@android:color/white"
+	        app:tabSelectedTextColor="@color/colorAccent"/>
+
+* 基本属性介绍，布局和代码都可以使用
+	* tabBackground：背景颜色
+	* tabIndicatorColor：指示器颜色，横线
+	* tabMode：模式，有scrollable和fixed两种，分别表示可以滑动和固定的意思
+	* tabTextColor：正常文字颜色
+	* tabSelectedTextColor：选中文字颜色
+	* tabIndicatorHeight：指示器高度
+	* tabPadding：指示器内边距
+
+* 代码中绑定ViewPager
+	* 在ViewPager设置Adapter之后，调用tabLayout的setupWithViewPager方法绑定ViewPager
+	* 设置显示的内容
+		* 可以调用tabLayout的addTab方法添加
+		* 也可以重写ViewPager适配器的getPagerTitle方法返回显示的内容
+
+
+
+#### 2.2 获取ViewPager对象，设置Fragment的适配器，默认继承FragmentPagerAdapter
+
+* 需要重写的方法
+	* FragmentAdapter(FragmentManager fm)：构造方法，需要传入Fragment管理器，getSupportFragmentManager()兼容的管理器
+	* getCount()：返回显示的条目数量
+	* getItem()：返回position位置的Fragment对象
+
+* 创建BaseFragment，其他Fragment都继承它，BaseFragment可以做一些共有的操作。
+
+* 出现的问题：
+	* 滑动时会默认加载左右两侧Fragment的数据，数据多时，滑动就会出现卡顿现象。
+	* 修改Fragment数据后，调用notifyDataSetChanged()方法失效。
+
+* 问题分析：
+	* 我们知道ViewPager本身具有预加载的性质，所以它会默认加载左右两边的Fragment，视图和数据也就被初始化了。所以我们需要屏蔽掉ViewPager的预加载，或者让Fragment实现懒加载。
+	* notifyDataSetChanged()方法失效说明getItem方法没有重新调用，那就与我们继承的FragmentPagerAdapter有关系了。
+
+
+### 三、FragmentPagerAdapter与FragmentStatePagerAdapter的区别
+#### 3.1 FragmentPagerAdapter
+* FragmentPagerAdapter类默认会对getItem()方法返回的Fragment做缓存处理，只有当第一次打开ViewPager的页面才会去创建Fragment的对象，后面再打开页面时就会直接从缓存中获取Fragment对象的引用，这样getItem方法就不会调用了。
+
+* 因为FragmentPagerAdapter做了缓存处理，所有当创建很多的Fragment时内存就会吃不消，应用程序有可能会崩掉，所以呢，FragmentPagerAdapter不适合做大量数据的Fragment显示，比较适合数据不变的静态Fragment显示。
+
+#### 3.2 FragmentStatePagerAdapter
+* FragmentStatePagerAdapter正好与之相反，每次进入页面时都会创建Fragment对象，每次滑出时都会销毁对应的Fragment对象，没有做一点的缓存，这样内存就完全的解放出来了。
+* FragmentStatePagerAdapter在销毁Fragment时会调用onSaveInstanceState方法保存一些数据信息，然后下一次创建Fragment时会将这些数据读取出来。
+
+
+* FragmentPagerAdapter与FragmentStatePagerAdapter具体区别还有很多，这里就不一一介绍了，有兴趣的朋友可以去百度搜一下。
+### 四、ViewPager的预加载解决
+* ViewPager天生会加载左右两侧的页面，这是通过一个叫做DEFAULT_OFFSCREEN_PAGES的属性指定的，通过setOffscreenPageLimit(int)可以指定这个属性的值。
+
+* 翻进setOffscreenPageLimit(int)的源码，发现要是给的值小于1，那还是默认为1，也就是说这个方法只能指定加载更多的页面。并不能解决问题。
+
+* 既然ViewPager天生有这个属性，那我们就自己建一个天生也有这个属性的ViewPager，让其默认为0就好了。但是因为ViewPager源码已经改版了不知多少次，所以建议去GrepCode上找。
+
+* 发现问题：
+	* 当我们把ViewPager改成自己的LazyViewPager之后，就不能与TabLayout绑定了，因为TabLayout只能与ViewPager对象绑定，这样就很尴尬了，能解决预加载问题，却不能解决绑定问题，说明这样也行不通了，那就只能把解决办法放到Fragment上了。
+
+
+### 五、Fragment实现懒加载
+* 既然前面ViewPager解决预加载发生冲突，那就只能自己解决加载数据的问题。
+
+
+> 分析：Fragment的生命周期中，我们一般在onCreateView方法初始化视图，onActivityCreated方法初始化数据，正常创建Fragment对象后就会去加载视图和数据，需要我们这里需要控制加载数据的时机。
+
+* 实现方式主要有两种，一是在页面选中后才去加载数据，二是当Fragment可见了才去加载数据。
+
+* 第一种方式实现：
+	* BaseFragment中暴露一个加载数据的方法，监听ViewPager的滑动，当页面选中时再去加载数据。代码见Demo。
+
+* 第二种方式实现：
+	* 通过setUserVisibleHint和getUserVisibleHint方法来设置和获取Fragment的显示状态，当显示了才去加载数据。因为每一个Fragment都是这样，所以在BaseFragment中完成操作。
+
+			@Override
+		    public void setUserVisibleHint(boolean isVisibleToUser) {
+		        super.setUserVisibleHint(isVisibleToUser);
+		        if (getUserVisibleHint()) {
+		            isVisible = true;
+		            lazyLoad();
+		        } else {
+		            isVisible = false;
+		            onInvisible();
+		        }
+		    }
 
 ---
 [个人主页](http://www.jianshu.com/users/64f479a1cef7/latest_articles)
